@@ -101,4 +101,13 @@ class answer
         setcookie($name,$value,time() + $validity,$path,$domain,$ssl);
         return $this;
     }
+    
+    public function location($location) : ?answer
+    {
+        if ($_SERVER['REQUEST_URI'] !== $location) {
+            $this->headers("Location: $location");
+            $this->send();
+        }
+        return $this;
+    }
 }
