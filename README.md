@@ -75,3 +75,11 @@ answer::new()->error("Something not found")->code(404)->send();
 > ```php
 > answer::new()->file($path)->error("File not found")->code(404)->send();
 >```
+
+> ```php
+> answer::new()->location("/");
+>```
+>Редиректит пользователя на переданный путь, если путь соответствует текущему пути, то продолжает выполнение параметров. Пример использования:
+> ```php
+> answer::new()->location("/index.html")->error("File not found")->code(404)->send();
+>```
