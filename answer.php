@@ -16,7 +16,7 @@ class answer
     private int $code = 200;
     private bool $success = true;
     private array|string|int|float|null $data = null;
-    private array $headers = ["Content-Type: application/json"];
+    private array $headers = [];
 
     private ?array $meta = null;
     private ?string $error = null;
@@ -28,12 +28,27 @@ class answer
         }
     }
 
+    private function streamFile($path) :bool
+    {
+        if (file_exists($path) && filetype($path) === "file") {
+            $contentType = mime_content_type($path);
+            $contentLength = filesize($path);
+
+            header("accept-ranges: bytes");
+            header("Content-length: $contentLength");
+            header("Content-type: $contentType");
+            die(readfile($path));
+        }
+        return false;
+    }
+
     public function send() :void
     {
         $this->setHeaders();
 
         $result = [];
 
+        $this->headers("Content-Type: application/json");
         $result["code"] = $this->code;
         $result["success"] = $this->success;
         if ($this->data !== null) $result["data"] = $this->data;
@@ -45,11 +60,7 @@ class answer
 
     public function file($path) :answer
     {
-        if (file_exists($path)) {
-            $contentType = mime_content_type($path);
-            header("Content-type: $contentType");
-            die(file_get_contents($path));
-        }
+        $this->streamFile($path);
         return $this;
     }
 
@@ -101,13 +112,28 @@ class answer
         setcookie($name,$value,time() + $validity,$path,$domain,$ssl);
         return $this;
     }
-    
+
     public function location($location) : ?answer
     {
-        if ($_SERVER['REQUEST_URI'] !== $location) {
-            $this->headers("Location: $location");
+        if (explode("?",$_SERVER['REQUEST_URI'])[0] !== $location) {
+            $newLocation = $location . ($_SERVER['QUERY_STRING'] ? ("?" . $_SERVER['QUERY_STRING']) : "");
+            $this->headers("Location: $newLocation");
             $this->send();
         }
         return $this;
     }
+
+    public function folder($path,$indexFile = "",$userPath = null) : answer
+    {
+        $queryPath = $userPath ?? explode("?",$_SERVER['REQUEST_URI'])[0];
+
+        $filePath = $path . $queryPath;
+
+        $this->streamFile($filePath);
+
+        $this->streamFile($indexFile);
+
+        return $this;
+    }
+
 }
